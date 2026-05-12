@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using UnityEngine;
+using BayatGames.SaveGameFree;
 
 namespace Degustation
 {
@@ -44,6 +45,32 @@ namespace Degustation
                     result.Add(kvp.Key);
             }
             return result;
+        }
+
+        // Сохраняем список разоблокированных actionId
+        public void Save()
+        {
+            var unlockedIds = new List<string>();
+            foreach (var kvp in _unlocked)
+            {
+                if (kvp.Value) 
+                    unlockedIds.Add(kvp.Key.actionId);
+            }
+
+            SaveGame.Save("unlocked_actions", unlockedIds.ToArray());
+        }
+
+        // Загружаем список разблокированных actionId
+        public void Load()
+        {
+            var ids = SaveGame.Load<string[]>("unlocked_actions", new string[0]);
+            var idSet = new HashSet<string>(ids);
+
+            foreach (var action in allActions)
+            {
+                _unlocked[action] = idSet.Contains(action.actionId) 
+                                    || action.unlockType == UnlockType.Starter;
+            }
         }
     }
 }
