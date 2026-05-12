@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6812fb7b5b820b048aab4ba5d256c217, type: 3}
+  m_Name: InspectionDamageTable
+  m_EditorClassIdentifier: 
+  groups:
+  - effectType: 10
+    customLabel: glass
+    rules:
+    - inspectionMethod: 1
+      damagedOrgan: 1
+      baseDamage: 0
+      strengthMultiplier: 0
+    - inspectionMethod: 2
+      damagedOrgan: 2
+      baseDamage: 5
+      strengthMultiplier: 0.5
+    - inspectionMethod: 3
+      damagedOrgan: 3
+      baseDamage: 2
+      strengthMultiplier: 0.2
+    - inspectionMethod: 0
+      damagedOrgan: 0
+      baseDamage: 20
+      strengthMultiplier: 1.5
+  - effectType: 1
+    customLabel: 
+    rules:
+    - inspectionMethod: 1
+      damagedOrgan: 1
+      baseDamage: 0
+      strengthMultiplier: 0
+    - inspectionMethod: 3
+      damagedOrgan: 3
+      baseDamage: 3
+      strengthMultiplier: 0.3
+    - inspectionMethod: 2
+      damagedOrgan: 2
+      baseDamage: 5
+      strengthMultiplier: 0.5
+    - inspectionMethod: 0
+      damagedOrgan: 0
+      baseDamage: 15
+      strengthMultiplier: 2
+  - effectType: 2
+    customLabel: 
+    rules:
+    - inspectionMethod: 1
+      damagedOrgan: 1
+      baseDamage: 0
+      strengthMultiplier: 0
+    - inspectionMethod: 2
+      damagedOrgan: 2
+      baseDamage: 10
+      strengthMultiplier: 1
+    - inspectionMethod: 3
+      damagedOrgan: 3
+      baseDamage: 5
+      strengthMultiplier: 0.5
+    - inspectionMethod: 0
+      damagedOrgan: 0
+      baseDamage: 20
+      strengthMultiplier: 2
