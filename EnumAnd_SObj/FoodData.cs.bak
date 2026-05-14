@@ -1,0 +1,27 @@
+// FoodData.cs
+// Только: название, иконки, targetSense + ссылка на FoodEffectProfile SO
+
+using UnityEngine;
+
+namespace Degustation
+{
+    [CreateAssetMenu(fileName = "NewFood", menuName = "Degustation/Food")]
+    public class FoodData : ScriptableObject
+    {
+        [Header("Название")]
+        public string foodName = "Food";
+
+        [Header("Иконки")]
+        public Sprite iconSmall;
+        public Sprite iconLarge;
+
+        [Header("Целевой сенс")]
+        public SenseType targetSense = SenseType.Vision;
+
+        // Перетаскиваешь сюда FoodEffectProfile из Assets
+        // Создать: ПКМ в Project → Degustation → Food Effect Profile
+        [Header("Профиль эффектов")]
+        [Tooltip("SO с enum-списками: яды, болезни, сенсы. Менеджер читает отсюда для проверки совместимости")]
+       public FoodEffect effectProfile;
+    }
+}

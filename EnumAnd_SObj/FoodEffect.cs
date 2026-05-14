@@ -1,112 +1,37 @@
 // FoodEffect.cs
-// Определяет типы эффектов и SO-список эффектов для продукта питания
+// ScriptableObject — список enum-значений конкретной еды
+// Менеджер читает отсюда и проверяет совместимости
+//
+// КАК РАСШИРЯТЬ:
+//   Добавил новый яд в PoisonType → он появится в дропдауне автоматически
+//   Добавил новый сенс в SenseType → аналогично
+//   Нужен новый тип данных (например ItemType) → добавь List<ItemType> сюда
 
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Degustation
 {
-    // ──────────────────────────────────────────────
-    // Тип эффекта — расширяй по вкусу
-    // ──────────────────────────────────────────────
-    public enum EffectType
-    {
-        None,
-        Poison,         // Яд
-        Fire,           // Огонь / жжение
-        Frost,          // Заморозка
-        Hallucination,  // Галлюцинация
-        Blind,          // Слепота
-        Regen,          // Регенерация
-        Stun,           // Оглушение
-        Blessed,        // Благословение
-        Cursed,         // Проклятие
-        Custom          // Произвольный — описание в customLabel
-    }
-
-    // ──────────────────────────────────────────────
-    // Один эффект: тип + сила + опциональный лейбл
-    // ──────────────────────────────────────────────
-    [Serializable]
-    public class EffectEntry
-    {
-        [Tooltip("Тип эффекта")]
-        public EffectType effectType = EffectType.None;
-
-        [Tooltip("Произвольное название (только для Custom или для отображения)")]
-        public string customLabel = "";
-
-        [Tooltip("Сила эффекта — абсолютное значение, трактуй в логике игры")]
-        [Range(0, 100)]
-        public int strength = 0;
-
-        [Tooltip("Длительность в секундах (0 = мгновенный)")]
-        public float duration = 0f;
-
-        // ── Вычисляемые булины ──────────────────────
-        // Не храни булины отдельно — читай через свойства.
-        // Это исключает рассинхрон между флагами и данными.
-
-        public bool IsActive      => effectType != EffectType.None && strength > 0;
-        public bool IsPoisonous   => effectType == EffectType.Poison   && strength > 0;
-        public bool IsOnFire      => effectType == EffectType.Fire     && strength > 0;
-        public bool IsHallucino   => effectType == EffectType.Hallucination && strength > 0;
-        public bool IsHarmful     => effectType is EffectType.Poison
-                                                 or EffectType.Fire
-                                                 or EffectType.Frost
-                                                 or EffectType.Blind
-                                                 or EffectType.Stun
-                                                 or EffectType.Cursed;
-        public bool IsBeneficial  => effectType is EffectType.Regen or EffectType.Blessed;
-
-        public override string ToString() =>
-            customLabel.Length > 0
-                ? $"{customLabel} x{strength}"
-                : $"{effectType} x{strength}";
-    }
-
-    // ──────────────────────────────────────────────
-    // SO — список эффектов (attach к FoodData или отдельно)
-    // ──────────────────────────────────────────────
-    [CreateAssetMenu(
-        fileName = "NewFoodEffect",
-        menuName = "Degustation/FoodEffect")]
+    [CreateAssetMenu(fileName = "NewFoodEffect", menuName = "Degustation/Food Effect")]
     public class FoodEffect : ScriptableObject
     {
-        [Header("Эффекты продукта")]
-        public List<EffectEntry> effects = new();
+        [Header("Яды")]
+        [Tooltip("Какие яды содержит продукт. Добавляй значения в PoisonType enum → появятся здесь")]
+        public List<PoisonosActions.PoisonType> poisons = new();
 
-        // Быстрые запросы ─────────────────────────
+        [Header("Болезни")]
+        [Tooltip("Какие болезни может передать продукт")]
+        public List<PoisonosActions.DiseaseType> diseases = new();
 
-        /// Есть ли хоть один активный вредный эффект
-        public bool HasHarmfulEffect
-        {
-            get
-            {
-                foreach (var e in effects)
-                    if (e.IsHarmful && e.IsActive) return true;
-                return false;
-            }
-        }
+        [Header("Затрагиваемые чувства")]
+        [Tooltip("Какие органы чувств затрагивает (кроме основного targetSense в FoodData)")]
+        public List<SenseType> affectedSenses = new();
 
-        /// Суммарная сила эффектов конкретного типа
-        public int TotalStrengthOf(EffectType type)
-        {
-            int total = 0;
-            foreach (var e in effects)
-                if (e.effectType == type) total += e.strength;
-            return total;
-        }
+        [Header("Расходники / экипировка (для совместимости)")]
+        [Tooltip("Какие расходники взаимодействуют с этим продуктом")]
+        public List<Degustator.SensoryConsumable> relatedConsumables = new();
 
-        /// Все активные эффекты определённого типа
-        public List<EffectEntry> GetEffects(EffectType type)
-        {
-            var result = new List<EffectEntry>();
-            foreach (var e in effects)
-                if (e.effectType == type && e.IsActive)
-                    result.Add(e);
-            return result;
-        }
+        [Tooltip("Какая экипировка защищает от этого продукта")]
+        public List<Degustator.SensoryEquipment> blockedByEquipment = new();
     }
 }

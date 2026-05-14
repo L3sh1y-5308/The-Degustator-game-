@@ -14,7 +14,6 @@
 //   var table = Resources.Load<InspectionDamageTable>("YourAssetPath");
 //   int dmg = table.GetDamage(EffectType.Custom, "glass", SenseType.Taste);
 //   senseStats.TakeDamage(SenseType.Taste, dmg);
-
 using System;
 using System.Collections.Generic;
 using UnityEngine;

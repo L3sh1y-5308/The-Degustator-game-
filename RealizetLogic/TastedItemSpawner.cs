@@ -59,7 +59,7 @@ namespace Degustation
                 GameObject prefab = spawnablePrefabs[Random.Range(0, spawnablePrefabs.Count)];
 
                 // Рандомный шаблон еды → роллим RuntimeFood
-                // Это ключевой момент: каждый экземпляр получает уникальные рандомные статы
+                // Каждый экземпляр получает уникальные рандомные статы
                 FoodData    template    = foodTemplates[Random.Range(0, foodTemplates.Count)];
                 RuntimeFood runtimeFood = template.Roll();
 
@@ -71,7 +71,6 @@ namespace Degustation
 
                 if (item != null)
                 {
-                    // Передаём RuntimeFood + SO-системы в предмет
                     item.Init(runtimeFood, senseStats, damageTable);
                     _activeItems.Add(item);
                 }

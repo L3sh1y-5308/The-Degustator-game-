@@ -3,7 +3,7 @@
 // Делегирует спавн TastedItemSpawner, переживает смену сцен через DontDestroyOnLoad,
 // после каждой загрузки сцены ищет UI-объекты через FindObjectOfType / Find.
 
-using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -16,37 +16,33 @@ namespace Degustation
 
         // ── ScriptableObject-данные (назначь в инспекторе, живут между сценами) ──
         [Header("ScriptableObjects")]
-        [Tooltip("SO статов персонажа — единый источник правды для HP органов")]
         public SenseStatsData senseStats;
-
-        [Tooltip("SO прогресса игрока (деньги, репутация, XP)")]
         public PlayerScore playerScore;
-
-        [Tooltip("SO таблицы урона")]
-        public InspectionDamageTable damageTable;
+       // public InspectionDamageTable damageTable;
 
         // ── Настройки раунда ───────────────────────────────────────
         [Header("Round Settings")]
-        [Tooltip("Количество раундов (волн) в одной сессии")]
-        [Range(1, 10)]
-        public int totalWaves = 3;
+        [Range(1, 10)] public int totalWaves = 3;
 
         // ── Имена сцен ─────────────────────────────────────────────
         [Header("Scenes")]
-        public string gameSceneName = "GameScene";
+        public string gameSceneName = "SampleScene";
         public string shopSceneName = "ShopScene";
 
         // ── Рантайм-состояние ──────────────────────────────────────
-        private int  _currentWave   = 0;
+        private int _currentWave = 0;
         private bool _sessionActive = false;
 
-        // Ссылки на компоненты текущей сцены — переназначаются после загрузки
+        // Ссылки на объекты текущей сцены — переназначаются после загрузки
         private TastedItemSpawner _spawner;
-        private Button            _confirmButton;
-        private GameObject        _resultsPanel;
-        private GameObject        _endSessionWidget;
-        private Button            _continueButton;
-        private Button            _shopButton;
+        private Button _confirmButton;
+        private EndOfRoundWindow _roundWindow;
+        private GameObject _endSessionWidget;
+        private Button _continueButton;
+        private Button _shopButton;
+
+        // Результаты текущей волны
+        private List<RoundResult> _currentResults = new();
 
         // ════════════════════════════════════════════════════════════
         // Singleton
@@ -58,55 +54,47 @@ namespace Degustation
             DontDestroyOnLoad(gameObject);
         }
 
-        void OnEnable()
-        {
-            // Слушаем загрузку новой сцены, чтобы переназначить UI
-            SceneManager.sceneLoaded += OnSceneLoaded;
-        }
-
-        void OnDisable()
-        {
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-        }
+        void OnEnable() => SceneManager.sceneLoaded += OnSceneLoaded;
+        void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
 
         // ════════════════════════════════════════════════════════════
-        // После загрузки любой сцены — найти и привязать объекты
-        // Имена объектов в иерархии должны совпадать с тегами ниже
+        // После загрузки сцены — найти UI и стартовать если нужно
         // ════════════════════════════════════════════════════════════
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             BindSceneObjects();
-
-            // Игровая сцена → стартуем сессию
             if (scene.name == gameSceneName)
                 StartSession();
         }
 
         void BindSceneObjects()
         {
-            // TastedItemSpawner — ищем в сцене (один экземпляр)
             _spawner = FindObjectOfType<TastedItemSpawner>();
             if (_spawner == null)
-                Debug.LogWarning("[GameManager] TastedItemSpawner не найден в сцене!");
+                Debug.LogWarning("[GameManager] TastedItemSpawner не найден!");
 
-            // UI — ищем по имени объекта.
-            // ВАЖНО: имена объектов в иерархии должны совпадать:
-            //   "ConfirmButton", "ResultsPanel", "EndSessionWidget",
-            //   "ContinueButton", "ShopButton"
-            _confirmButton    = FindButton("ConfirmButton");
-            _continueButton   = FindButton("ContinueButton");
-            _shopButton       = FindButton("ShopButton");
-            _resultsPanel     = GameObject.Find("ResultsPanel");
+            // Кнопки — ищем по имени объекта в иерархии
+            _confirmButton = FindButton("ConfirmButton");
+            _continueButton = FindButton("ContinueButton");
+            _shopButton = FindButton("ShopButton");
+
+            // EndOfRoundWindow — ищем компонент (работает даже если объект скрыт)
+            _roundWindow = FindObjectOfType<EndOfRoundWindow>(true);
+            if (_roundWindow != null)
+            {
+                _roundWindow.OnNextPressed -= AfterRoundWindowClosed;
+                _roundWindow.OnNextPressed += AfterRoundWindowClosed;
+                _roundWindow.Hide();
+            }
+            else Debug.LogWarning("[GameManager] EndOfRoundWindow не найден!");
+
+            // EndSessionWidget — пустой GameObject с двумя кнопками
             _endSessionWidget = GameObject.Find("EndSessionWidget");
-
-            // Скрываем панели
-            _resultsPanel?.SetActive(false);
             _endSessionWidget?.SetActive(false);
 
-            // Привязываем кнопки (RemoveAllListeners — чтобы не дублировались)
-            BindButton(_confirmButton,  OnConfirmPressed);
+            BindButton(_confirmButton, OnConfirmPressed);
             BindButton(_continueButton, OnContinuePressed);
-            BindButton(_shopButton,     OnShopPressed);
+            BindButton(_shopButton, OnShopPressed);
         }
 
         // ════════════════════════════════════════════════════════════
@@ -114,7 +102,7 @@ namespace Degustation
         // ════════════════════════════════════════════════════════════
         public void StartSession()
         {
-            _currentWave  = 0;
+            _currentWave = 0;
             _sessionActive = true;
             StartWave();
         }
@@ -122,65 +110,78 @@ namespace Degustation
         void StartWave()
         {
             _currentWave++;
+            _currentResults.Clear();
             Debug.Log($"[GameManager] Волна {_currentWave}/{totalWaves}");
 
-            // Делегируем спавн — GameManager сам не создаёт объекты
             if (_spawner != null)
                 _spawner.SpawnRandomItems();
             else
-                Debug.LogWarning("[GameManager] Нет спавнера — пропускаем спавн.");
+                Debug.LogWarning("[GameManager] Нет спавнера!");
 
             SetConfirmInteractable(true);
         }
 
         // ════════════════════════════════════════════════════════════
-        // Кнопка подтверждения
+        // Кнопка подтверждения — игрок проверил все блюда
         // ════════════════════════════════════════════════════════════
         void OnConfirmPressed()
         {
             if (!_sessionActive) return;
             SetConfirmInteractable(false);
 
-            // TODO: здесь передай результат проверки из UI в CalculateScore
-            int score = CalculateScore();
+            // Собираем результаты по активным блюдам
+            CollectResults();
 
-            // Начисляем XP и репутацию через PlayerScore SO
-            playerScore?.AddXP(score);
-            if (score > 0) playerScore?.AddReputation(1);
+            // Суммируем очки
+            int totalScore = 0;
+            foreach (var r in _currentResults) totalScore += r.score;
 
-            Debug.Log($"[GameManager] Волна {_currentWave} завершена. Очки: {score}");
-
+            playerScore?.AddXP(totalScore);
+            if (totalScore > 0) playerScore?.AddReputation(1);
             playerScore?.Save();
-            ShowWaveResults();
+
+            Debug.Log($"[GameManager] Волна {_currentWave} завершена. Очки: {totalScore}");
+
+            // Показываем окно итогов
+            if (_roundWindow != null)
+                _roundWindow.Show(_currentResults, _currentWave);
+            else
+                AfterRoundWindowClosed(); // окна нет — идём дальше сразу
         }
 
         // ════════════════════════════════════════════════════════════
-        // Подсчёт очков — подключи свою логику
+        // Сбор результатов из TastedItem-ов
         // ════════════════════════════════════════════════════════════
-        int CalculateScore()
+        void CollectResults()
         {
-            // TODO: пройти по TastedItem-ам из _spawner.GetActiveItems(),
-            // сравнить с ответами игрока (через DropDown/UI) и вернуть сумму
-            return Random.Range(0, 100);
+            _currentResults.Clear();
+            if (_spawner == null) return;
+
+            foreach (var item in _spawner.GetActiveItems())
+            {
+                // TODO: получить реальный ответ игрока из UI (DropDown)
+                // Сейчас — заглушка, правильный ответ из шаблона еды
+                string correctAnswer = item.RuntimeFood?.source?.foodName ?? "?";
+                string playerAnswer = correctAnswer; // заглушка — всегда верно
+                int score = item.baseScore; // заглушка
+
+                _currentResults.Add(new RoundResult
+                {
+                    dishName = item.displayName,
+                    playerAnswer = playerAnswer,
+                    correctAnswer = correctAnswer,
+                    score = score,
+                    usedSense = SenseType.Vision // заглушка
+                });
+            }
         }
 
         // ════════════════════════════════════════════════════════════
-        // Результаты волны
+        // Вызывается когда игрок закрыл EndOfRoundWindow (нажал Далее)
         // ════════════════════════════════════════════════════════════
-        void ShowWaveResults()
+        void AfterRoundWindowClosed()
         {
-            _resultsPanel?.SetActive(true);
-            StartCoroutine(WaitForResultsDismiss());
-        }
-
-        IEnumerator WaitForResultsDismiss()
-        {
-            // Простой таймер — замени на событие "игрок нажал Далее"
-            yield return new WaitForSeconds(2f);
-            _resultsPanel?.SetActive(false);
-
-            bool hasMoreWaves = _currentWave < totalWaves;
-            if (hasMoreWaves)
+            if (_currentWave < totalWaves)
                 StartWave();
             else
                 EndSession();
@@ -204,7 +205,6 @@ namespace Degustation
         void OnContinuePressed()
         {
             _endSessionWidget?.SetActive(false);
-            // BindSceneObjects + StartSession вызовутся автоматически через OnSceneLoaded
             SceneManager.LoadScene(gameSceneName);
         }
 

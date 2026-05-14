@@ -30,7 +30,7 @@ namespace Degustation
 
         // ── Ссылки на SO-системы (назначь в инспекторе или через Init) ──
         [Header("Системы (назначь или подтянутся из GameManager)")]
-        public SenseStatsData    senseStats;
+        public SenseStatsData        senseStats;
         public InspectionDamageTable damageTable;
 
         // ════════════════════════════════════════════════════════════
