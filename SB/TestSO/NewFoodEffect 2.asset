@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ceed5ef6adf47694f99ab4abe47abbfb, type: 3}
   m_Name: NewFoodEffect 2
   m_EditorClassIdentifier: 
-  effects:
-  - effectType: 0
-    customLabel: 
-    strength: 0
-    duration: 0
+  poisons: 00000000
+  diseases: 
+  affectedSenses: 
+  relatedConsumables: 
+  blockedByEquipment: 
