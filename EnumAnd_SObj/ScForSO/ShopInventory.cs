@@ -28,11 +28,10 @@ public class ShopInventory : ScriptableObject
         [Tooltip("Уникальный ID (например: scroll_skill_fire)")]
         public string id;
         public string displayName;
+        public Sprite icon; 
         public ItemCategory category;
         public float price;
-        [Tooltip("Описание эффекта для UI")]
         [TextArea(1, 3)] public string description;
-        [Tooltip("Количество в магазине (-1 = бесконечно)")]
         public int stock = -1;
     }
 
@@ -89,10 +88,21 @@ public class ShopInventory : ScriptableObject
                        description="Даёт скидку 30% на следующую покупку.", stock=5 },
     };
 
+
+
+
     // ── API ───────────────────────────────────────────────────────
 
     /// Найти товар по ID
     public ShopItem Find(string id) => Items.Find(x => x.id == id);
+
+
+    [System.Serializable]
+    public struct ShopItemSprite
+    {
+        public ShopItem item;
+        public Sprite sprite;
+    }
 
     /// Попытка купить товар.
     /// discountCard — применить скидку 30% (карточка тратится снаружи)
