@@ -16,6 +16,7 @@ MonoBehaviour:
   - id: scroll_class_skill
     displayName: "\u0421\u0432\u0438\u0442\u043E\u043A: \u0421\u043A\u0438\u043B
       \u043A\u043B\u0430\u0441\u0441\u0430"
+    icon: {fileID: 0}
     category: 0
     price: 80
     description: "\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0431\u0430\u0437\u043E\u0432\u044B\u0439
@@ -23,6 +24,7 @@ MonoBehaviour:
     stock: -1
   - id: scroll_combo_skill
     displayName: "\u0421\u0432\u0438\u0442\u043E\u043A: \u041A\u043E\u043C\u0431\u043E-\u0441\u043A\u0438\u043B"
+    icon: {fileID: 0}
     category: 0
     price: 150
     description: "\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u043A\u043E\u043C\u0431\u043E-\u0430\u0442\u0430\u043A\u0443
@@ -31,6 +33,7 @@ MonoBehaviour:
   - id: scroll_economy_skill
     displayName: "\u0421\u0432\u0438\u0442\u043E\u043A: \u042D\u043A\u043E\u043D\u043E\u043C\u043D\u044B\u0439
       \u0441\u043A\u0438\u043B"
+    icon: {fileID: 0}
     category: 0
     price: 60
     description: "\u0421\u043D\u0438\u0436\u0430\u0435\u0442 \u0440\u0430\u0441\u0445\u043E\u0434
@@ -39,6 +42,7 @@ MonoBehaviour:
   - id: potion_head
     displayName: "\u0417\u0435\u043B\u044C\u0435: \u041B\u0435\u0447\u0435\u043D\u0438\u0435
       \u0433\u043E\u043B\u043E\u0432\u044B"
+    icon: {fileID: 0}
     category: 1
     price: 25
     description: "\u041B\u0435\u0447\u0438\u0442 \u0442\u0440\u0430\u0432\u043C\u044B
@@ -48,6 +52,7 @@ MonoBehaviour:
   - id: potion_limb
     displayName: "\u0417\u0435\u043B\u044C\u0435: \u041B\u0435\u0447\u0435\u043D\u0438\u0435
       \u043A\u043E\u043D\u0435\u0447\u043D\u043E\u0441\u0442\u0435\u0439"
+    icon: {fileID: 0}
     category: 1
     price: 20
     description: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442
@@ -56,6 +61,7 @@ MonoBehaviour:
   - id: potion_shield
     displayName: "\u0417\u0435\u043B\u044C\u0435: \u0429\u0438\u0442 \u043E\u0442
       \u0443\u0440\u043E\u043D\u0430"
+    icon: {fileID: 0}
     category: 1
     price: 45
     description: "\u0414\u0430\u0451\u0442 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u044B\u0439
@@ -65,6 +71,7 @@ MonoBehaviour:
   - id: charm_detect_curse
     displayName: "\u041E\u0431\u0435\u0440\u0435\u0433: \u0414\u0435\u0442\u0435\u043A\u0442\u043E\u0440
       \u043F\u043E\u0440\u0447\u0438"
+    icon: {fileID: 0}
     category: 2
     price: 120
     description: "\u0412\u044B\u044F\u0432\u043B\u044F\u0435\u0442 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0435
@@ -72,6 +79,7 @@ MonoBehaviour:
     stock: 3
   - id: tool_glasses
     displayName: "\u041E\u0447\u043A\u0438 \u0430\u043D\u0430\u043B\u0438\u0437\u0430"
+    icon: {fileID: 0}
     category: 3
     price: 200
     description: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442 \u0441\u043A\u0440\u044B\u0442\u044B\u0435
@@ -79,6 +87,7 @@ MonoBehaviour:
     stock: 2
   - id: tool_magnifier
     displayName: "\u041B\u0443\u043F\u0430"
+    icon: {fileID: 0}
     category: 3
     price: 90
     description: "\u0414\u0435\u0442\u0430\u043B\u044C\u043D\u044B\u0439 \u043E\u0441\u043C\u043E\u0442\u0440
@@ -87,6 +96,7 @@ MonoBehaviour:
   - id: tool_inv_expand
     displayName: "\u0420\u0430\u0441\u0448\u0438\u0440\u0438\u0442\u0435\u043B\u044C
       \u0438\u043D\u0432\u0435\u043D\u0442\u0430\u0440\u044F"
+    icon: {fileID: 0}
     category: 3
     price: 300
     description: "\u0414\u043E\u0431\u0430\u0432\u043B\u044F\u0435\u0442 +10 \u0441\u043B\u043E\u0442\u043E\u0432
@@ -95,6 +105,7 @@ MonoBehaviour:
   - id: tool_discount_card
     displayName: "\u0421\u043A\u0438\u0434\u043E\u0447\u043D\u0430\u044F \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0430
       (1 \u043F\u043E\u043A\u0443\u043F\u043A\u0430)"
+    icon: {fileID: 0}
     category: 3
     price: 50
     description: "\u0414\u0430\u0451\u0442 \u0441\u043A\u0438\u0434\u043A\u0443 30%

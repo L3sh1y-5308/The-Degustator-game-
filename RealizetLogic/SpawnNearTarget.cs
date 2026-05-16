@@ -1,12 +1,24 @@
-﻿using UnityEngine;
+// SpawnNearTarget.cs
+// Спавн UI-панели рядом с целевым объектом на Canvas.
+// FIX: использует RectTransform.anchoredPosition вместо world position.
+
+using UnityEngine;
 using UnityEngine.UI;
 
 public class SpawnNearTarget : MonoBehaviour
 {
+    [Tooltip("Префаб UI-панели для спавна")]
     public GameObject prefabToSpawn;
-    public GameObject targetObject;
-    public Transform canvasTransform;
-    public float offsetRight = 1.5f;
+
+    [Tooltip("RectTransform целевого объекта (рядом с которым появится панель)")]
+    public RectTransform targetRect;
+
+    [Tooltip("Корневой RectTransform Canvas")]
+    public RectTransform canvasRect;
+
+    [Tooltip("Смещение в Canvas-пикселях (вправо от цели)")]
+    public float offsetRight = 200f;
+
     public Button spawnButton;
 
     private GameObject _spawnedInstance;
@@ -14,14 +26,12 @@ public class SpawnNearTarget : MonoBehaviour
     private void Start()
     {
         if (spawnButton != null)
-        {
             spawnButton.onClick.AddListener(SpawnNextToTarget);
-        }
     }
 
     public void SpawnNextToTarget()
     {
-        // Если объект уже создан, удаляем его (закрываем)
+        // Тогл: если уже есть — закрыть
         if (_spawnedInstance != null)
         {
             Destroy(_spawnedInstance);
@@ -29,20 +39,16 @@ public class SpawnNearTarget : MonoBehaviour
             return;
         }
 
-        if (prefabToSpawn != null && targetObject != null && canvasTransform != null)
+        if (prefabToSpawn == null || targetRect == null || canvasRect == null)
         {
-            // Рассчитываем позицию относительно целевого объекта
-            Vector3 spawnPos = targetObject.transform.position + new Vector3(offsetRight, 0, 0);
-
-            // Спавн и сохранение ссылки
-            _spawnedInstance = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity, canvasTransform);
-        }
-        else
-        {
-            Debug.LogWarning("Убедитесь, что prefabToSpawn, targetObject и canvasTransform назначены!");
+            Debug.LogWarning("[SpawnNearTarget] Не назначены поля!");
+            return;
         }
 
+        _spawnedInstance = Instantiate(prefabToSpawn, canvasRect);
 
-
+        var spawnedRect = _spawnedInstance.GetComponent<RectTransform>();
+        if (spawnedRect != null)
+            spawnedRect.anchoredPosition = targetRect.anchoredPosition + new Vector2(offsetRight, 0f);
     }
 }
