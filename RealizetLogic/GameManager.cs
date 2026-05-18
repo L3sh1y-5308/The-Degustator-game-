@@ -14,6 +14,9 @@ namespace Degustation
     {
         public static GameManager Instance { get; private set; }
 
+        [Header("Inspection Points")]
+        public InspectionPoints inspectionPoints;
+
         // ── ScriptableObject-данные (назначь в инспекторе, живут между сценами) ──
         [Header("ScriptableObjects")]
         public SenseStatsData senseStats;
@@ -104,6 +107,7 @@ namespace Degustation
         {
             _currentWave = 0;
             _sessionActive = true;
+            inspectionPoints?.StartSession(); // добавь эту строку
             StartWave();
         }
 

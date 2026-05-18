@@ -27,13 +27,25 @@ public class ItemSlot : MonoBehaviour
     public bool IsSpaceFree { get; private set; } = true;
 
     // Image вместо SpriteRenderer — работает на Canvas
-    private Image    _image;
+    private Image _image;
+    private Button _button;
+    
+    [Header("Еда по умолчанию (задаётся на префабе в Inspector)")]
+    [SerializeField] private FoodData defaultFood;
+
     private FoodData _currentFood;
 
     private void Awake()
     {
         _image = GetComponent<Image>();
         _image.preserveAspect = true;
+
+        _button = GetComponent<Button>();
+        if (_button != null) _button.interactable = false;
+
+        // Если на префабе задана еда — применяем сразу
+        if (defaultFood != null && slotType == SlotType.Food)
+            SetFood(defaultFood);
     }
 
     private void OnEnable()
@@ -61,7 +73,8 @@ public class ItemSlot : MonoBehaviour
     public void SetFood(FoodData food)
     {
         _currentFood = food;
-        PlaceSprite(food != null ? food.iconSmall : null);
+        PlaceSprite(food != null ? food.shopIcon : null);
+        if (_button != null) _button.interactable = food != null;
     }
 
     public FoodData GetFood() => _currentFood;
@@ -72,6 +85,7 @@ public class ItemSlot : MonoBehaviour
         _image.sprite = null;
         _image.color  = new Color(1, 1, 1, 0.25f);
         IsSpaceFree   = true;
+        if (_button != null) _button.interactable = false;
     }
 
     // ── NPC API ───────────────────────────────────────────────────
