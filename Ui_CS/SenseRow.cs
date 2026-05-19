@@ -1,3 +1,8 @@
+// SenseRow.cs
+// Вешается на каждую строку в сайдпанели (Toggle + Dropdown).
+// Показывает только разблокированные навыки через ActionUnlockManager.
+
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -10,11 +15,40 @@ public class SenseRow : MonoBehaviour
     [SerializeField] private TMP_Dropdown dropdown;
 
     private InspectionPoints _points;
+    private ActionUnlockManager _unlockManager;
+
+    // Карта индекс дропдауна → SubActionData (для сохранения)
+    private List<SubActionData> _currentActions = new();
 
     private void Awake()
     {
-        toggle.onValueChanged.AddListener(OnToggleChanged);
         dropdown.interactable = false;
+    }
+
+    public void Setup(SenseType sense, bool isOn, int savedActionIndex,
+                      InspectionPoints points, ActionUnlockManager unlockManager)
+    {
+        _points        = points;
+        _unlockManager = unlockManager;
+        senseType      = sense;
+
+        // отписываемся перед установкой значений
+        toggle.onValueChanged.RemoveListener(OnToggleChanged);
+
+        // заполняем дропдаун только разблокированными навыками
+        _currentActions = _unlockManager.GetUnlockedForSense(sense);
+        var options = new List<string>();
+        foreach (var action in _currentActions)
+            options.Add(action.displayName);
+
+        dropdown.ClearOptions();
+        dropdown.AddOptions(options);
+
+        toggle.SetIsOnWithoutNotify(isOn);
+        dropdown.value        = Mathf.Clamp(savedActionIndex, 0, Mathf.Max(0, options.Count - 1));
+        dropdown.interactable = isOn;
+
+        toggle.onValueChanged.AddListener(OnToggleChanged);
     }
 
     private void OnToggleChanged(bool isOn)
@@ -35,33 +69,14 @@ public class SenseRow : MonoBehaviour
         dropdown.interactable = isOn;
     }
 
-    public void Setup(SenseType sense, bool isOn, int savedAction, InspectionPoints points)
+    public bool IsActive()       => toggle.isOn;
+    public int  GetActionIndex() => dropdown.value;
+
+    // Возвращает выбранный SubActionData или null
+    public SubActionData GetSelectedAction()
     {
-        _points = points;
-        senseType = sense;
-
-        toggle.onValueChanged.RemoveListener(OnToggleChanged);
-
-        var names = sense switch
-        {
-            SenseType.Taste => System.Enum.GetNames(typeof(TasteAction)),
-            SenseType.Vision => System.Enum.GetNames(typeof(VisionAction)),
-            SenseType.Touch => System.Enum.GetNames(typeof(TouchAction)),
-            SenseType.Smell => System.Enum.GetNames(typeof(SmellAction)),
-            SenseType.Hearing => System.Enum.GetNames(typeof(HearingAction)),
-            _ => new string[] { "—" }
-        };
-
-        dropdown.ClearOptions();
-        dropdown.AddOptions(new System.Collections.Generic.List<string>(names));
-
-        toggle.SetIsOnWithoutNotify(isOn);
-        dropdown.value = savedAction;
-        dropdown.interactable = isOn;
-
-        toggle.onValueChanged.AddListener(OnToggleChanged);
+        if (!toggle.isOn || _currentActions.Count == 0) return null;
+        int idx = dropdown.value;
+        return idx < _currentActions.Count ? _currentActions[idx] : null;
     }
-
-    public bool IsActive() => toggle.isOn;
-    public int GetAction() => dropdown.value;
 }
