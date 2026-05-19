@@ -22,6 +22,10 @@ namespace Degustation
         [Tooltip("FoodEffect SO — яды/болезни блюда")]
         public FoodEffect effectProfile;
 
+        [Header("Правильное действие")]
+        [Tooltip("Оптимальное суб-действие для этой еды — даёт максимальный результат")]
+        public SubActionData correctAction;
+
         public RuntimeFood Roll()
         {
             var runtime = new RuntimeFood(this);

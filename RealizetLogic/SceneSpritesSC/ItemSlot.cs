@@ -34,6 +34,7 @@ public class ItemSlot : MonoBehaviour
     [SerializeField] private FoodData defaultFood;
 
     private FoodData _currentFood;
+    private TastedItem _tastedItem;
 
     private void Awake()
     {
@@ -70,18 +71,22 @@ public class ItemSlot : MonoBehaviour
         IsSpaceFree   = sprite == null;
     }
 
-    public void SetFood(FoodData food)
+    public void SetFood(FoodData food, TastedItem tastedItem = null)
     {
-        _currentFood = food;
+        _currentFood  = food;
+        _tastedItem   = tastedItem;
         PlaceSprite(food != null ? food.shopIcon : null);
         if (_button != null) _button.interactable = food != null;
     }
 
     public FoodData GetFood() => _currentFood;
 
+    public TastedItem GetTastedItem() => _tastedItem;
+
     public void ClearSlot()
     {
         _currentFood  = null;
+        _tastedItem   = null;
         _image.sprite = null;
         _image.color  = new Color(1, 1, 1, 0.25f);
         IsSpaceFree   = true;

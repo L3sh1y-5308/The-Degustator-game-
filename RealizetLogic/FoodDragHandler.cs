@@ -73,10 +73,13 @@ public class FoodDragHandler : MonoBehaviour,
         if (target != null && target != _slot && target.slotType == ItemSlot.SlotType.Food)
         {
             // Swap
-            var myFood     = _slot.GetFood();
-            var targetFood = target.GetFood();
-            _slot.SetFood(targetFood);
-            target.SetFood(myFood);
+            var myFood      = _slot.GetFood();
+            var myItem      = _slot.GetTastedItem();
+            var targetFood  = target.GetFood();
+            var targetItem  = target.GetTastedItem();
+
+            _slot.SetFood(targetFood, targetItem);
+            target.SetFood(myFood, myItem);
         }
 
         _image.color = Color.white;

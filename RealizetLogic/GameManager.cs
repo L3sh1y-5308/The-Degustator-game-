@@ -161,21 +161,22 @@ namespace Degustation
             _currentResults.Clear();
             if (_spawner == null) return;
 
-            foreach (var item in _spawner.GetActiveItems())
+            foreach (var slot in _spawner.GetActiveSlots())
             {
-                // TODO: получить реальный ответ игрока из UI (DropDown)
-                // Сейчас — заглушка, правильный ответ из шаблона еды
-                string correctAnswer = item.RuntimeFood?.source?.foodName ?? "?";
-                string playerAnswer = correctAnswer; // заглушка — всегда верно
-                int score = item.baseScore; // заглушка
+                FoodData food = slot.GetFood();
+                if (food == null) continue;
+
+                string correctAnswer = food.foodName;
+                string playerAnswer = correctAnswer; // заглушка
+                int score = 10;            // заглушка
 
                 _currentResults.Add(new RoundResult
                 {
-                    dishName = item.displayName,
+                    dishName = food.foodName,
                     playerAnswer = playerAnswer,
                     correctAnswer = correctAnswer,
                     score = score,
-                    usedSense = SenseType.Vision // заглушка
+                    usedSense = food.targetSense
                 });
             }
         }
@@ -237,6 +238,18 @@ namespace Degustation
             if (btn == null) return;
             btn.onClick.RemoveAllListeners();
             btn.onClick.AddListener(action);
+        }
+
+        public void ReceiveInspectionResults(List<InspectionProcessor.InspectionResult> results)
+        {
+            if (results == null || results.Count == 0) return;
+
+            for (int i = 0; i < results.Count && i < _currentResults.Count; i++)
+            {
+                var ir = results[i];
+                _currentResults[i].playerAnswer = ir.usedSense.ToString();
+                _currentResults[i].score = ir.score;
+            }
         }
     }
 }

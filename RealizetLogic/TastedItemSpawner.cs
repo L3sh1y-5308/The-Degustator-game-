@@ -1,6 +1,6 @@
 // TastedItemSpawner.cs
-// Отвечает только за создание и очистку предметов на сцене.
-// После Instantiate вызывает TastedItem.Init() с рандомизированным RuntimeFood.
+// Заполняет UI ItemSlot-ы едой из FoodData шаблонов.
+// Не спавнит 3D объекты — работает только с Canvas слотами.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,80 +9,68 @@ namespace Degustation
 {
     public class TastedItemSpawner : MonoBehaviour
     {
-        [Header("Спавн")]
+        [Header("Слоты на столе (UI ItemSlot)")]
+        [Tooltip("Все Food-слоты на сцене — перетащи из иерархии")]
+        public List<ItemSlot> foodSlots = new();
+
+        [Header("Еда")]
         [Tooltip("Шаблоны FoodData — из них роллится RuntimeFood")]
         public List<FoodData> foodTemplates = new();
-
-        [Tooltip("Префабы с компонентом TastedItem")]
-        public List<GameObject> spawnablePrefabs = new();
-
-        [Tooltip("Точки спавна на сцене")]
-        public List<Transform> spawnPoints = new();
 
         [Range(1, 10)] public int minSpawnCount = 2;
         [Range(1, 10)] public int maxSpawnCount = 5;
 
-        [Header("SO-системы (для инициализации TastedItem)")]
-        public SenseStatsData        senseStats;
-        public InspectionDamageTable damageTable;
-
-        // Активные предметы текущего раунда
-        private List<TastedItem> _activeItems = new();
+        // Активные слоты текущего раунда (те что заполнены)
+        private List<ItemSlot> _activeSlots = new();
 
         // ════════════════════════════════════════════════════════════
         // Спавн
         // ════════════════════════════════════════════════════════════
-        public List<TastedItem> SpawnRandomItems()
+        public List<ItemSlot> SpawnRandomItems()
         {
             ClearItems();
 
-            if (spawnablePrefabs.Count == 0)
+            if (foodSlots.Count == 0)
             {
-                Debug.LogWarning("[TastedItemSpawner] Нет префабов!");
-                return _activeItems;
+                Debug.LogWarning("[TastedItemSpawner] Нет слотов!");
+                return _activeSlots;
             }
 
             if (foodTemplates.Count == 0)
             {
                 Debug.LogWarning("[TastedItemSpawner] Нет FoodData-шаблонов!");
-                return _activeItems;
+                return _activeSlots;
             }
 
-            int count = Random.Range(minSpawnCount, maxSpawnCount + 1);
+            int count = Random.Range(minSpawnCount, Mathf.Min(maxSpawnCount, foodSlots.Count) + 1);
 
-            List<Transform> shuffled = new(spawnPoints);
-            Shuffle(shuffled);
+            // Перемешиваем слоты и шаблоны
+            List<ItemSlot> shuffledSlots = new(foodSlots);
+            List<FoodData> shuffledFood  = new(foodTemplates);
+            Shuffle(shuffledSlots);
+            Shuffle(shuffledFood);
+
+            // Сначала очищаем все слоты
+            foreach (var slot in foodSlots)
+                slot.ClearSlot();
 
             for (int i = 0; i < count; i++)
             {
-                // Рандомный префаб
-                GameObject prefab = spawnablePrefabs[Random.Range(0, spawnablePrefabs.Count)];
-
-                // Рандомный шаблон еды → роллим RuntimeFood
-                // Каждый экземпляр получает уникальные рандомные статы
-                FoodData    template    = foodTemplates[Random.Range(0, foodTemplates.Count)];
-                RuntimeFood runtimeFood = template.Roll();
-
-                // Позиция
-                Vector3 pos = (i < shuffled.Count) ? shuffled[i].position : Vector3.zero;
-
-                GameObject obj  = Instantiate(prefab, pos, Quaternion.identity);
-                TastedItem item = obj.GetComponent<TastedItem>();
-
-                if (item != null)
-                {
-                    item.Init(runtimeFood, senseStats, damageTable);
-                    _activeItems.Add(item);
-                }
-                else
-                {
-                    Debug.LogWarning($"[TastedItemSpawner] У '{prefab.name}' нет TastedItem!");
-                    Destroy(obj);
-                }
+                FoodData food = shuffledFood[i % shuffledFood.Count];
+                shuffledSlots[i].SetFood(food);
+                _activeSlots.Add(shuffledSlots[i]);
             }
 
-            Debug.Log($"[TastedItemSpawner] Заспавнено {_activeItems.Count} предметов.");
-            return _activeItems;
+            // Сортируем активные слоты слева направо по X
+            _activeSlots.Sort((a, b) =>
+            {
+                var ra = a.GetComponent<RectTransform>();
+                var rb = b.GetComponent<RectTransform>();
+                return ra.anchoredPosition.x.CompareTo(rb.anchoredPosition.x);
+            });
+
+            Debug.Log($"[TastedItemSpawner] Заполнено {_activeSlots.Count} слотов.");
+            return _activeSlots;
         }
 
         // ════════════════════════════════════════════════════════════
@@ -90,12 +78,13 @@ namespace Degustation
         // ════════════════════════════════════════════════════════════
         public void ClearItems()
         {
-            foreach (var item in _activeItems)
-                if (item != null) Destroy(item.gameObject);
-            _activeItems.Clear();
+            foreach (var slot in foodSlots)
+                if (slot != null) slot.ClearSlot();
+            _activeSlots.Clear();
         }
 
-        public List<TastedItem> GetActiveItems() => new(_activeItems);
+        // Активные слоты отсортированы слева направо
+        public List<ItemSlot> GetActiveSlots() => new(_activeSlots);
 
         // ════════════════════════════════════════════════════════════
         // Fisher-Yates shuffle
