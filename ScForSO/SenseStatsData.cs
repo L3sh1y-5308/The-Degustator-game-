@@ -210,5 +210,14 @@ namespace Degustation
             s.earHp     = SaveGame.Load("ear",     100);
             s.stomachHp = SaveGame.Load("stomach", 100);
         }
+
+        private void OnValidate()
+        {
+            OnOrganDamaged?.Invoke(new DamageEvent(SenseType.Vision,  0, eyeHp));
+            OnOrganDamaged?.Invoke(new DamageEvent(SenseType.Taste,   0, mouthHp));
+            OnOrganDamaged?.Invoke(new DamageEvent(SenseType.Touch,   0, touchHp));
+            OnOrganDamaged?.Invoke(new DamageEvent(SenseType.Smell,   0, noseHp));
+            OnOrganDamaged?.Invoke(new DamageEvent(SenseType.Hearing, 0, earHp));
+        }
     }
 }

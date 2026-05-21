@@ -1,42 +1,52 @@
 // CheckingPanel.cs
-// Панель проверки блюд.
-// Выезжает сверху вниз. Внутри карусель — каждая карточка стоит holdDuration секунд,
-// затем Container сдвигается влево на ширину карточки (следующая въезжает справа).
-// После показа всех блюд — запускает InspectionProcessor и прячется.
+// Куб уже на сцене и выезжает по Y через DOTween.
+// Скрипт спавнит SpriteRenderer еды на FoodSpawnPoint,
+// показывает каждое блюдо holdDuration секунд,
+// применяет Outline (OutlineFx) по статусу и TMP текст который плывёт вверх и рассеивается.
+// После всех блюд — запускает InspectionProcessor.
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.UI;
 using DG.Tweening;
+using TMPro;
+using OutlineFx;
 using Degustation;
 
 public class CheckingPanel : MonoBehaviour
 {
-    [Header("Панель — анимация по Y")]
-    [SerializeField] private RectTransform panelRect;
-    [SerializeField] private float hiddenY       = 800f;
-    [SerializeField] private float visibleY      = 0f;
-    [SerializeField] private float slideDuration = 0.5f;
+    [Header("Куб — анимация по Y")]
+    [SerializeField] private Transform cubeTransform;
+    [SerializeField] private float hiddenY       =  8f;
+    [SerializeField] private float visibleY      =  0f;
+    [SerializeField] private float slideDuration =  0.6f;
+
+    [Header("Спавн спрайта еды")]
+    [SerializeField] private Transform foodSpawnPoint;
+    [SerializeField] private float     spriteScale = 1f;
 
     [Header("Карусель")]
-    [SerializeField] private RectTransform container;   // двигается по X
-    [SerializeField] private GameObject    cardPrefab;  // префаб карточки с Image
-    [SerializeField] private float         cardWidth    = 400f;  // ширина одной карточки
-    [SerializeField] private float         holdDuration = 4f;    // секунд на блюдо
-    [SerializeField] private float         scrollDuration = 0.6f; // скорость листания
+    [SerializeField] private float holdDuration   = 4f;
+    [SerializeField] private float scrollDuration = 0.5f;
+    [SerializeField] private float scrollOffsetX  = 6f;
+
+    [Header("Outline цвета по статусу")]
+    [SerializeField] private Color colorPerfect = Color.green;
+    [SerializeField] private Color colorPartial = Color.yellow;
+    [SerializeField] private Color colorFail    = Color.red;
+
+    [Header("Текст статуса")]
+    [SerializeField] private GameObject statusTextPrefab;
+    [SerializeField] private Vector3    textOffset       = new Vector3(0, 1.5f, 0);
+    [SerializeField] private float      textRiseDuration = 1.5f;
+    [SerializeField] private float      textFadeDuration = 1f;
 
     [Header("Зависимости")]
     [SerializeField] private InspectionProcessor processor;
     [SerializeField] private TastedItemSpawner   spawner;
 
-    private List<GameObject> _cards = new();
-
-    void Start()
-    {
-        panelRect.anchoredPosition = new Vector2(
-            panelRect.anchoredPosition.x, hiddenY);
-    }
+    private GameObject     _currentSprite;
+    private Outline        _currentOutline;
 
     // ── Вызывается кнопкой "Start Checking" ──────────────────────
     public void StartChecking() => _ = RunChecking();
@@ -46,91 +56,135 @@ public class CheckingPanel : MonoBehaviour
         var slots = spawner.GetActiveSlots();
         if (slots.Count == 0) return;
 
-        // 1. Строим карточки
-        BuildCards(slots);
-
-        // 2. Панель выезжает сверху вниз
-        await panelRect
-            .DOAnchorPosY(visibleY, slideDuration)
-            .SetEase(Ease.OutQuart)
-            .SetUpdate(true)
-            .AsyncWaitForCompletion();
-
-        // 3. Показываем каждую карточку
-        for (int i = 0; i < slots.Count; i++)
-        {
-            // Карточка уже на месте — ждём holdDuration
-            await Task.Delay((int)(holdDuration * 1000));
-
-            // Листаем влево (если не последняя)
-            if (i < slots.Count - 1)
-            {
-                float targetX = -(i + 1) * cardWidth;
-                await container
-                    .DOAnchorPosX(targetX, scrollDuration)
-                    .SetEase(Ease.InOutQuad)
-                    .SetUpdate(true)
-                    .AsyncWaitForCompletion();
-            }
-        }
-
-        // 4. Небольшая пауза перед закрытием
-        await Task.Delay(500);
-
-        // 5. Панель уезжает обратно вверх
-        await panelRect
-            .DOAnchorPosY(hiddenY, slideDuration)
-            .SetEase(Ease.InQuart)
-            .SetUpdate(true)
-            .AsyncWaitForCompletion();
-
-        // 6. Чистим карточки
-        ClearCards();
-
-        // 7. Запускаем проверку и передаём результаты
+        // Получаем результаты до показа — чтобы знать цвет outline
         var results = processor.ProcessAll();
-        GameManager.Instance.ReceiveInspectionResults(results);
-    }
 
-    // ── Создаём карточки под каждое блюдо ────────────────────────
-    void BuildCards(List<ItemSlot> slots)
-    {
-        ClearCards();
-
-        // Сбрасываем позицию контейнера
-        container.anchoredPosition = Vector2.zero;
+        // Куб выезжает вниз
+        await cubeTransform
+            .DOMoveY(visibleY, slideDuration)
+            .SetEase(Ease.OutQuart)
+            .AsyncWaitForCompletion();
 
         for (int i = 0; i < slots.Count; i++)
         {
             FoodData food = slots[i].GetFood();
             if (food == null) continue;
 
-            GameObject card = Instantiate(cardPrefab, container);
-            RectTransform rt = card.GetComponent<RectTransform>();
+            var grade = i < results.Count
+                ? results[i].grade
+                : InspectionProcessor.InspectionGrade.Fail;
 
-            // Расставляем карточки горизонтально
-            rt.anchoredPosition = new Vector2(i * cardWidth, 0f);
-            rt.sizeDelta        = new Vector2(cardWidth, rt.sizeDelta.y);
+            // Спрайт въезжает справа
+            SpawnFoodSprite(food, grade);
+            await Task.Delay((int)(holdDuration * 1000));
 
-            // Назначаем иконку
-            Image img = card.GetComponent<Image>();
-            if (img != null)
+            // Текст статуса
+            string label = grade switch
             {
-                img.sprite = food.shopIcon;
-                img.color  = Color.white;
-            }
+                InspectionProcessor.InspectionGrade.Perfect => "Супер!",
+                InspectionProcessor.InspectionGrade.Partial => "Молодец",
+                InspectionProcessor.InspectionGrade.Fail    => "Провал",
+                _ => ""
+            };
+            _ = ShowStatusText(label, grade);
+            await Task.Delay(800);
 
-            _cards.Add(card);
+            // Уезжает влево — чистим
+            if (i < slots.Count - 1)
+            {
+                await _currentSprite.transform
+                    .DOMoveX(cubeTransform.position.x - scrollOffsetX, scrollDuration)
+                    .SetEase(Ease.InQuad)
+                    .AsyncWaitForCompletion();
+                DestroyCurrentSprite();
+            }
         }
 
-        // Растягиваем контейнер под все карточки
-        container.sizeDelta = new Vector2(slots.Count * cardWidth, container.sizeDelta.y);
+        await Task.Delay(1000);
+        DestroyCurrentSprite();
+
+        // Куб уезжает вверх
+        await cubeTransform
+            .DOMoveY(hiddenY, slideDuration)
+            .SetEase(Ease.InQuart)
+            .AsyncWaitForCompletion();
+
+        GameManager.Instance.ReceiveInspectionResults(results);
     }
 
-    void ClearCards()
+    void SpawnFoodSprite(FoodData food, InspectionProcessor.InspectionGrade grade)
     {
-        foreach (var card in _cards)
-            if (card != null) Destroy(card);
-        _cards.Clear();
+        DestroyCurrentSprite();
+
+        _currentSprite = new GameObject($"FoodDisplay_{food.foodName}");
+        var sr = _currentSprite.AddComponent<SpriteRenderer>();
+        sr.sprite       = food.shopIcon;
+        sr.sortingOrder = 1;
+
+        _currentSprite.transform.localScale = Vector3.one * spriteScale;
+
+        // Outline по статусу
+        _currentOutline       = _currentSprite.AddComponent<Outline>();
+        _currentOutline.Color = grade switch
+        {
+            InspectionProcessor.InspectionGrade.Perfect => colorPerfect,
+            InspectionProcessor.InspectionGrade.Partial => colorPartial,
+            InspectionProcessor.InspectionGrade.Fail    => colorFail,
+            _ => Color.white
+        };
+
+        // Въезжает справа
+        Vector3 startPos = foodSpawnPoint.position + Vector3.right * scrollOffsetX;
+        _currentSprite.transform.position = startPos;
+        _currentSprite.transform
+            .DOMoveX(foodSpawnPoint.position.x, scrollDuration)
+            .SetEase(Ease.OutQuad);
+    }
+
+    void DestroyCurrentSprite()
+    {
+        if (_currentSprite == null) return;
+        _currentSprite.transform.DOKill();
+        Destroy(_currentSprite);
+        _currentSprite  = null;
+        _currentOutline = null;
+    }
+
+    async Task ShowStatusText(string message, InspectionProcessor.InspectionGrade grade)
+    {
+        if (statusTextPrefab == null) return;
+
+        var textObj = Instantiate(
+            statusTextPrefab,
+            foodSpawnPoint.position + textOffset,
+            Quaternion.identity);
+
+        var tmp = textObj.GetComponentInChildren<TMP_Text>();
+        if (tmp != null)
+        {
+            tmp.text  = message;
+            tmp.color = grade switch
+            {
+                InspectionProcessor.InspectionGrade.Perfect => colorPerfect,
+                InspectionProcessor.InspectionGrade.Partial => colorPartial,
+                InspectionProcessor.InspectionGrade.Fail    => colorFail,
+                _ => Color.white
+            };
+
+            textObj.transform
+                .DOMoveY(textObj.transform.position.y + 1.5f, textRiseDuration)
+                .SetEase(Ease.OutQuad);
+
+            await tmp
+                .DOFade(0f, textFadeDuration)
+                .SetDelay(textRiseDuration - textFadeDuration)
+                .AsyncWaitForCompletion();
+        }
+        else
+        {
+            await Task.Delay((int)(textRiseDuration * 1000));
+        }
+
+        Destroy(textObj);
     }
 }

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56cabf966c876fa4ba1d2cf14cfb1619, type: 3}
+  m_Name: MeatSoup
+  m_EditorClassIdentifier: 
+  foodName: MeatSoup
+  shopIcon: {fileID: 7289664650073328932, guid: 077f6b1f9124f9d489fcd3c0a38ee3d3, type: 3}
+  targetSense: 0
+  effectProfile: {fileID: 0}
+  correctAction: {fileID: 0}

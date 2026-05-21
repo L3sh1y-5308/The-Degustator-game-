@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56cabf966c876fa4ba1d2cf14cfb1619, type: 3}
+  m_Name: WineD
+  m_EditorClassIdentifier: 
+  foodName: Wine
+  shopIcon: {fileID: -4270878181932141640, guid: 730366beb5efaf14291e7585887a3386, type: 3}
+  targetSense: 3
+  effectProfile: {fileID: 11400000, guid: d81176fee3a3e1a47b1ebb4b7766ce7a, type: 2}
+  correctAction: {fileID: 11400000, guid: 0de6d9b63f90cc343a7651d2be18fc63, type: 2}

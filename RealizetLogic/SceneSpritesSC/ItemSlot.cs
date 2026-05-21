@@ -36,6 +36,12 @@ public class ItemSlot : MonoBehaviour
     private FoodData _currentFood;
     private TastedItem _tastedItem;
 
+    private void Start()
+    {
+        if (slotType == SlotType.Organ && playerStats != null)
+            RefreshOrganSprite();
+    }
+
     private void Awake()
     {
         _image = GetComponent<Image>();
