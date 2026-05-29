@@ -10,9 +10,12 @@ namespace Degustation
         [Header("Название")]
         public string foodName = "Food";
 
-        [Header("Иконка для магазина")]
-        [Tooltip("Используется только в UI магазина")]
+        [Header("Иконка")]
         public Sprite shopIcon;
+
+        [Header("3D Model")]
+        public GameObject prefab3D;
+        public Vector3 placementOffset; // если нужна точная посадка на тарелке
 
         [Header("Целевой сенс")]
         [Tooltip("Основное чувство которым проверяется это блюдо")]
