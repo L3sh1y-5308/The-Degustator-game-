@@ -100,6 +100,24 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""TwistDelta"",
+                    ""type"": ""Value"",
+                    ""id"": ""efe40afb-bc52-4545-a076-3da049e3cd3c"",
+                    ""expectedControlType"": ""Vector3"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""TwistHold"",
+                    ""type"": ""Button"",
+                    ""id"": ""09c9fdee-e5de-43cd-9ca0-d2539ef066d6"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -113,6 +131,28 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                     ""action"": ""Scroll"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""be9ca8e6-7eb6-485e-9554-1d09e4d865f3"",
+                    ""path"": ""<Mouse>/delta"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""TwistDelta"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""588531e0-f016-43ae-82b8-480d5877d290"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""TwistHold"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -122,6 +162,8 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         // ControllOf3dObj
         m_ControllOf3dObj = asset.FindActionMap("ControllOf3dObj", throwIfNotFound: true);
         m_ControllOf3dObj_Scroll = m_ControllOf3dObj.FindAction("Scroll", throwIfNotFound: true);
+        m_ControllOf3dObj_TwistDelta = m_ControllOf3dObj.FindAction("TwistDelta", throwIfNotFound: true);
+        m_ControllOf3dObj_TwistHold = m_ControllOf3dObj.FindAction("TwistHold", throwIfNotFound: true);
     }
 
     ~@GameInput()
@@ -203,6 +245,8 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
     private readonly InputActionMap m_ControllOf3dObj;
     private List<IControllOf3dObjActions> m_ControllOf3dObjActionsCallbackInterfaces = new List<IControllOf3dObjActions>();
     private readonly InputAction m_ControllOf3dObj_Scroll;
+    private readonly InputAction m_ControllOf3dObj_TwistDelta;
+    private readonly InputAction m_ControllOf3dObj_TwistHold;
     /// <summary>
     /// Provides access to input actions defined in input action map "ControllOf3dObj".
     /// </summary>
@@ -218,6 +262,14 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "ControllOf3dObj/Scroll".
         /// </summary>
         public InputAction @Scroll => m_Wrapper.m_ControllOf3dObj_Scroll;
+        /// <summary>
+        /// Provides access to the underlying input action "ControllOf3dObj/TwistDelta".
+        /// </summary>
+        public InputAction @TwistDelta => m_Wrapper.m_ControllOf3dObj_TwistDelta;
+        /// <summary>
+        /// Provides access to the underlying input action "ControllOf3dObj/TwistHold".
+        /// </summary>
+        public InputAction @TwistHold => m_Wrapper.m_ControllOf3dObj_TwistHold;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -247,6 +299,12 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             @Scroll.started += instance.OnScroll;
             @Scroll.performed += instance.OnScroll;
             @Scroll.canceled += instance.OnScroll;
+            @TwistDelta.started += instance.OnTwistDelta;
+            @TwistDelta.performed += instance.OnTwistDelta;
+            @TwistDelta.canceled += instance.OnTwistDelta;
+            @TwistHold.started += instance.OnTwistHold;
+            @TwistHold.performed += instance.OnTwistHold;
+            @TwistHold.canceled += instance.OnTwistHold;
         }
 
         /// <summary>
@@ -261,6 +319,12 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             @Scroll.started -= instance.OnScroll;
             @Scroll.performed -= instance.OnScroll;
             @Scroll.canceled -= instance.OnScroll;
+            @TwistDelta.started -= instance.OnTwistDelta;
+            @TwistDelta.performed -= instance.OnTwistDelta;
+            @TwistDelta.canceled -= instance.OnTwistDelta;
+            @TwistHold.started -= instance.OnTwistHold;
+            @TwistHold.performed -= instance.OnTwistHold;
+            @TwistHold.canceled -= instance.OnTwistHold;
         }
 
         /// <summary>
@@ -308,5 +372,19 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnScroll(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "TwistDelta" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnTwistDelta(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "TwistHold" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnTwistHold(InputAction.CallbackContext context);
     }
 }
