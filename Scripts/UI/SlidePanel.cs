@@ -2,6 +2,7 @@
 // Сайдпанель инспекции еды.
 // Показывает иконку еды, 5 строк чувств (Toggle + Dropdown).
 // Сохраняет выбор per-food. Поинты общие на сессию.
+// В 3D-режиме открывается из InspectionController: Open(food) / Close().
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -43,8 +44,31 @@ public class SlidePanel : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F) && !_isAnimating)
+        // InputCompat вместо Input.GetKeyDown — старый Input Manager
+        // выбрасывает исключение, если в проекте включён только новый Input System
+        if (InputCompat.KeyDown(KeyCode.F) && !_isAnimating)
             ToggleVoid();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // ЯВНОЕ открытие/закрытие — для 3D-режима осмотра.
+    // ToggleWithFood оставлен ради старого 2D-кода, но он именно
+    // переключает: второй клик по другому блюду закрывал бы панель.
+    // ════════════════════════════════════════════════════════════
+    public void Open(FoodData food)
+    {
+        if (food == null) return;
+
+        SaveCurrentChoice();
+        ApplyFood(food);
+
+        if (!_isOpen) _ = SlideIn();
+    }
+
+    public void Close()
+    {
+        SaveCurrentChoice();
+        if (_isOpen) _ = SlideOut();
     }
 
     // ════════════════════════════════════════════════════════════
@@ -52,12 +76,21 @@ public class SlidePanel : MonoBehaviour
     // ════════════════════════════════════════════════════════════
     public void ToggleWithFood(FoodData food)
     {
-        // сохраняем предыдущий выбор
         SaveCurrentChoice();
+        ApplyFood(food);
+        _ = Toggle();
+    }
 
-        _currentFood    = food;
-        foodIcon.sprite = food.shopIcon;
-        foodIcon.color  = Color.white;
+    // Заполнить панель данными блюда (без анимации)
+    private void ApplyFood(FoodData food)
+    {
+        _currentFood = food;
+
+        if (foodIcon != null)
+        {
+            foodIcon.sprite = food.shopIcon;
+            foodIcon.color  = food.shopIcon != null ? Color.white : new Color(1, 1, 1, 0.25f);
+        }
 
         var choice = _choices.ContainsKey(food)
             ? _choices[food]
@@ -70,8 +103,6 @@ public class SlidePanel : MonoBehaviour
                 ? choice.selectedAction[row.senseType] : 0;
             row.Setup(row.senseType, isOn, savedIndex, inspectionPoints, unlockManager);
         }
-
-        _ = Toggle();
     }
 
     // Для клавиши F — без еды

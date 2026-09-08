@@ -17,36 +17,36 @@ public class CheckingPanel : MonoBehaviour
 {
     [Header("Куб — анимация по Y")]
     [SerializeField] private Transform cubeTransform;
-    [SerializeField] private float hiddenY       =  8f;
-    [SerializeField] private float visibleY      =  0f;
-    [SerializeField] private float slideDuration =  0.6f;
+    [SerializeField] private float hiddenY = 8f;
+    [SerializeField] private float visibleY = 0f;
+    [SerializeField] private float slideDuration = 0.6f;
 
     [Header("Спавн спрайта еды")]
     [SerializeField] private Transform foodSpawnPoint;
-    [SerializeField] private float     spriteScale = 1f;
+    [SerializeField] private float spriteScale = 1f;
 
     [Header("Карусель")]
-    [SerializeField] private float holdDuration   = 4f;
+    [SerializeField] private float holdDuration = 4f;
     [SerializeField] private float scrollDuration = 0.5f;
-    [SerializeField] private float scrollOffsetX  = 6f;
+    [SerializeField] private float scrollOffsetX = 6f;
 
     [Header("Outline цвета по статусу")]
     [SerializeField] private Color colorPerfect = Color.green;
     [SerializeField] private Color colorPartial = Color.yellow;
-    [SerializeField] private Color colorFail    = Color.red;
+    [SerializeField] private Color colorFail = Color.red;
 
     [Header("Текст статуса")]
     [SerializeField] private GameObject statusTextPrefab;
-    [SerializeField] private Vector3    textOffset       = new Vector3(0, 1.5f, 0);
-    [SerializeField] private float      textRiseDuration = 1.5f;
-    [SerializeField] private float      textFadeDuration = 1f;
+    [SerializeField] private Vector3 textOffset = new Vector3(0, 1.5f, 0);
+    [SerializeField] private float textRiseDuration = 1.5f;
+    [SerializeField] private float textFadeDuration = 1f;
 
     [Header("Зависимости")]
     [SerializeField] private InspectionProcessor processor;
-    [SerializeField] private TastedItemSpawner   spawner;
+    [SerializeField] private TastedItemSpawner spawner;
 
-    private GameObject     _currentSprite;
-    private Outline        _currentOutline;
+    private GameObject _currentSprite;
+    private Outline _currentOutline;
 
     // ── Вызывается кнопкой "Start Checking" ──────────────────────
     public void StartChecking() => _ = RunChecking();
@@ -83,7 +83,7 @@ public class CheckingPanel : MonoBehaviour
             {
                 InspectionProcessor.InspectionGrade.Perfect => "Супер!",
                 InspectionProcessor.InspectionGrade.Partial => "Молодец",
-                InspectionProcessor.InspectionGrade.Fail    => "Провал",
+                InspectionProcessor.InspectionGrade.Fail => "Провал",
                 _ => ""
             };
             _ = ShowStatusText(label, grade);
@@ -109,7 +109,12 @@ public class CheckingPanel : MonoBehaviour
             .SetEase(Ease.InQuart)
             .AsyncWaitForCompletion();
 
-        GameManager.Instance.ReceiveInspectionResults(results);
+        // GameManager.ReceiveInspectionResults() удалён вместе с заглушкой CollectResults():
+        // теперь GameManager сам вызывает InspectionProcessor.ProcessAll() и получает
+        // готовые результаты, а не чинит их задним числом. Эта карусель — 2D-легаси
+        // и в 3D-сцене не участвует; при переделке под 3D подписывайся на события
+        // раунда вместо прямого вызова в GameManager.
+        Debug.Log($"[CheckingPanel] Показ результатов завершён: {results.Count} блюд.");
     }
 
     void SpawnFoodSprite(FoodData food, InspectionProcessor.InspectionGrade grade)
@@ -118,18 +123,18 @@ public class CheckingPanel : MonoBehaviour
 
         _currentSprite = new GameObject($"FoodDisplay_{food.foodName}");
         var sr = _currentSprite.AddComponent<SpriteRenderer>();
-        sr.sprite       = food.shopIcon;
+        sr.sprite = food.shopIcon;
         sr.sortingOrder = 1;
 
         _currentSprite.transform.localScale = Vector3.one * spriteScale;
 
         // Outline по статусу
-        _currentOutline       = _currentSprite.AddComponent<Outline>();
+        _currentOutline = _currentSprite.AddComponent<Outline>();
         _currentOutline.Color = grade switch
         {
             InspectionProcessor.InspectionGrade.Perfect => colorPerfect,
             InspectionProcessor.InspectionGrade.Partial => colorPartial,
-            InspectionProcessor.InspectionGrade.Fail    => colorFail,
+            InspectionProcessor.InspectionGrade.Fail => colorFail,
             _ => Color.white
         };
 
@@ -146,7 +151,7 @@ public class CheckingPanel : MonoBehaviour
         if (_currentSprite == null) return;
         _currentSprite.transform.DOKill();
         Destroy(_currentSprite);
-        _currentSprite  = null;
+        _currentSprite = null;
         _currentOutline = null;
     }
 
@@ -162,12 +167,12 @@ public class CheckingPanel : MonoBehaviour
         var tmp = textObj.GetComponentInChildren<TMP_Text>();
         if (tmp != null)
         {
-            tmp.text  = message;
+            tmp.text = message;
             tmp.color = grade switch
             {
                 InspectionProcessor.InspectionGrade.Perfect => colorPerfect,
                 InspectionProcessor.InspectionGrade.Partial => colorPartial,
-                InspectionProcessor.InspectionGrade.Fail    => colorFail,
+                InspectionProcessor.InspectionGrade.Fail => colorFail,
                 _ => Color.white
             };
 
