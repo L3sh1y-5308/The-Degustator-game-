@@ -1,5 +1,7 @@
 // FoodData.cs
 
+using Degustator;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Degustation
@@ -7,6 +9,11 @@ namespace Degustation
     [CreateAssetMenu(fileName = "NewFood", menuName = "Degustation/Food")]
     public class FoodData : ScriptableObject
     {
+        [Header("Region")]
+        [Tooltip("Region and Level mod")]
+        public List<FoodBiom.CastleType> Type = new();
+        public List<FoodBiom.CastleLevel> Level = new();
+
         [Header("Название")]
         public string foodName = "Food";
 
