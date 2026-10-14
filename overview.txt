@@ -1,0 +1,288 @@
+ОБЗОР ПРОЕКТА "THE DEGUSTATOR" (Unity 6000.0.70f1, URP 17, Input System 1.19)
+=====================================================================================
+Дата обзора: 2026-10-14. Ветка: HEAD (detached), последний коммит ea0f92a.
+Обзор составлен по чтению исходников, ассетов, ProjectSettings и git-статуса.
+Unity Editor НЕ запускался, поэтому "работает / не работает" ниже - это вывод из
+кода и настроек, а не результат прогона в редакторе.
+
+
+1. О ЧЁМ ИГРА
+-------------
+Rogue-like про дегустатора при дворе (средневековый сеттинг: король, казначей,
+бабка, слуга и т.д.). На столе лежат блюда, часть из них отравлена или заражена.
+Игрок берёт блюдо в руки (3D-осмотр "как в Skyrim"), выбирает чувства
+(вкус / зрение / осязание / обоняние / слух) и конкретное действие
+(лизнуть, понюхать, прищуриться...). Неверный способ проверки наносит урон
+органам чувств. За раунд начисляются очки, опыт и репутация. Между забегами
+есть магазин (свитки открывают новые действия, расходники, экипировка).
+
+Структура игры:
+  - сессия = несколько волн (GameManager.totalWaves, по умолчанию 3);
+  - волна = случайный набор блюд на столе -> осмотр -> кнопка "Проверить" ->
+    окно итогов -> следующая волна;
+  - после последней волны - EndSessionWidget с кнопками Continue / Shop.
+
+Сторонние ассеты и пакеты: DOTween (анимации), BayatGames SaveGameFree
+(сохранения), Outline (OutlineFx), FronkonGames Retro Noir, PSX-постпроцесс
+(Psx.Volume в сцене), TextMeshPro, Unity Input System, Unity AI Assistant /
+Inference (пакеты com.unity.ai.*).
+
+
+2. ИТОГ В ДВУХ СТРОКАХ
+----------------------
+Игровая ЛОГИКА (спавн блюд, осмотр, проверка, урон, очки, магазин, сохранения)
+написана и выглядит цельной. Но единственная сцена в проекте (SampleScene)
+содержит только стол и камеру: ни один из ключевых компонентов (GameManager,
+FoodSpawner3D, InspectionController, SlidePanel, InspectionProcessor...) на неё
+не повешен. Поэтому сейчас играбельного цикла нет - есть набор систем,
+не собранных в сцену. Параллельно начата вторая, ещё сырая подсистема
+"план раунда" (LevelType / RoundPlan / FoodEnchanter), не подключённая к первой.
+
+
+3. РАСКЛАДКА ПАПОК (Assets/The-Degustator-game-)
+-------------------------------------------------
+Scripts/
+  Core/        GameManager, SceneSwitcher, SceneButton
+  Data/        ScriptableObject-ы и данные: FoodData, FoodEffect, FoodLayerEffect,
+               SubActionData, ScrollItemData, SenseStatsData, InspectionPoints,
+               InspectionDamageTable, PlayerScore, ShopInventory, NPCWallet,
+               NPcCharacter, Dish(DishData); новые (не в git): FoodInstance,
+               FoodList, RoundPlan
+  Enums/       SenseActions (SenseType + суб-действия), PoisonosActions,
+               SupliesEm, FoodBiom
+  Gameplay/    RuntimeFood, ActionUnlockManager, InspectionProcessor, TasteHandler
+  World/       FoodItem, FoodPlacementPoint, FoodSpawner3D, FoodHighlight
+  Interaction/ IInteractable, PlayerInteractor, InspectionController,
+               Manipulation, InputCompat
+  UI/          SlidePanel, SenseRow, OrganView, HoverLabel, InspectionPointsDisplay,
+               EndOfRoundWindow, ShopItemView, InventoryItemView
+  Minigames/   CircularSkillCheck, MashingMiniGame
+  Editor/      Degustator3DPrefabFactory (меню Degustation -> 3D)
+  _Legacy2D/   старый 2D-интерфейс (13 файлов), помечен "удалить, когда 3D заработает"
+  README_3D.md описание 3D-потока (в целом совпадает с кодом)
+Корень The-Degustator-game-/ (разрозненные файлы):
+  FoodServant.cs (полностью закомментирован), TableLine.cs, TableLine1.cs,
+  DropDownManager.cs, ReadDropDownINP.cs, ProgressBar.cs, LevelType.cs (новый),
+  LevelType_Pref/ (LevelManager.cs + 3 префаба/ассета уровней, новое),
+  Entitis_Scripts/FoodEnchanter.cs (изменён, не закоммичен),
+  InputsF/GameInput.cs (сгенерированный враппер Input Actions)
+Данные (.asset):
+  ForSOFood/MainFood      13 блюд (Bread, Cake, Chiken, Fish, Soup, Wine, ...)
+  ForSOFood/Disease       13 профилей болезней (BreadD ...)
+  ForSOFood/PoisonesV     13 профилей ядов (BreadP ...)
+  ForSOFood/PoisonSO      6 ядов (Aconite, Arsenic, Belladona, Henbane, Lead,
+                          Mercury) + Sicknes/Cube.prefab (новый, не в git)
+  NPCfolder               7 NPC (Babka, ChercGuy, Kaznachei, Kids, King, Servant,
+                          ShopGuy)
+  ForShopItems            ShopInventory, InspectionDamageTable, ItemsForShop
+  EnumFolder/Sences       ассеты суб-действий (ActionSO)
+  Ui_CS                   InspectionPoints, ShopInventory, ScrollItemData, Dish ...
+  Menu.asset, NewFood*.asset в корне - черновики
+Вне папки (Assets/): Scenes/SampleScene.unity (единственная сцена), Tabel.prefab,
+  r.prefab, Resources/DOTweenSettings.asset, InputSystem_Actions.inputactions.
+
+
+4. АРХИТЕКТУРА: КАК ВСЁ СВЯЗАНО
+-------------------------------
+Все игровые типы в namespace Degustation (кроме нескольких "корневых" скриптов
+без namespace: LevelManager, FoodEnchanter, FoodTable, FoodList, FoodInstance,
+TableLine, Dish, SlidePanel, FoodInspectionChoice, PlayerScore и др.).
+
+4.1 Данные (ScriptableObject)
+  FoodData          блюдо: foodName, shopIcon, prefab3D, placementOffset,
+                    targetSense (каким чувством проверять), effectProfile
+                    (FoodEffect), correctAction (SubActionData),
+                    списки биомов/уровней (FoodBiom). Метод Roll() создаёт
+                    RuntimeFood: для каждого яда силу 1-5, для каждой болезни 1-3.
+  FoodEffect        списки ядов (PoisonType), болезней (DiseaseType),
+                    affectedSenses, связанные расходники / экипировка.
+  SubActionData     суб-действие (senseType, actionId, unlockType: Starter/Scroll).
+  InspectionDamageTable  правила "эффект x способ проверки -> орган -> урон"
+                    (baseDamage + strength * multiplier). Умеет ApplyDamage().
+  SenseStatsData    HP шести органов (глаза, рот, осязание, нос, уши, желудок),
+                    состояния по порогам HP, спрайты состояний, события урона,
+                    Save/Load через SaveGameFree.
+  InspectionPoints  очки осмотра на сессию (базово 5), Spend/Refund/AddBonus.
+  PlayerScore       деньги, репутация, XP, уровни, события, Save/Load.
+  ShopInventory     каталог магазина (категории, цены, TryBuy, скидочная карта).
+  NPCWallet         кошелёк NPC: выплата игроку зависит от репутации.
+  NPcCharacter      спрайты эмоций + реплики + особые блюда NPC.
+  LevelType (нов.)  levelName, availableFood, possibleModifiers.
+
+4.2 Поток одной волны (3D-режим)
+  GameManager (DontDestroyOnLoad, синглтон)
+    - на sceneLoaded находит в сцене FoodSpawner3D, InspectionProcessor,
+      EndOfRoundWindow и кнопки по ИМЕНИ (GameObject.Find: "ConfirmButton",
+      "ContinueButton", "ShopButton", "EndSessionWidget")
+    - StartSession -> StartWave -> FoodSpawner3D.SpawnRandomItems()
+  FoodSpawner3D
+    - берёт FoodPlacementPoint-ы (дети стола), перемешивает, ставит
+      FoodData.prefab3D, вешает FoodItem, вызывает FoodData.Roll()
+    - сортирует блюда слева направо в системе координат камеры
+  PlayerInteractor (на камере) - луч в курсор, ЛКМ по IInteractable
+  FoodItem : IInteractable - подсветка (FoodHighlight через MaterialPropertyBlock),
+    состояния OnTable / Moving / Inspected, сам достраивает коллайдер
+  InspectionController (синглтон, DOTween)
+    - блюдо летит в HoldAnchor перед камерой, включается Manipulation
+      (вращение по осям камеры + зум с клампом, ввод из GameInput ->
+      карта ControllOf3dObj), открывается SlidePanel.Open(food)
+    - ПКМ / Esc возвращают блюдо на стол; на время осмотра выключаются
+      скрипты игрока (disableWhileInspecting)
+  SlidePanel + SenseRow - выбор чувств (toggle) и действий (dropdown) для
+    каждого блюда, хранит FoodInspectionChoice; тратит InspectionPoints;
+    список действий берётся из ActionUnlockManager
+  Кнопка "Проверить" -> GameManager.OnConfirmPressed -> InspectionProcessor.ProcessAll():
+    Perfect (верные чувство + действие): +20, урона нет
+    Partial (верное чувство, неверное действие): +10, урон по targetSense
+    Fail (чувство неверное или не выбрано): 0, урон по Taste (GetWorstSense)
+    Урон считается по УЖЕ брошенному RuntimeFood блюда -> InspectionDamageTable
+    -> SenseStatsData.TakeDamage
+  GameManager: XP += сумма очков, репутация +1 при очках > 0, playerScore.Save(),
+    EndOfRoundWindow.Show(...) -> следующая волна или EndSession.
+  OrganView (2D UI) подписывается на события SenseStatsData и меняет спрайт органа.
+
+4.3 Магазин и прогресс
+  ShopInventory.TryBuy -> PlayerScore.SpendMoney; ScrollItemData.unlocksAction ->
+  ActionUnlockManager.UnlockViaScroll (Save/Load через SaveGameFree).
+  ShopItemView / InventoryItemView - UI-карточки. SceneSwitcher / SceneButton -
+  переходы между сценами по имени.
+
+4.4 Новая подсистема "план раунда" (в разработке, не закоммичена)
+  LevelType (SO) -> LevelManager.RunRound(RoundPlan) -> FoodEnchanter.Apply(plan)
+  -> FoodTable.Serve(dishes, location). FoodList.GenerateList() - случайное меню
+  из префабов. FoodInstance - обёртка FoodData + модификаторы. Это каркас с
+  пустыми методами-заглушками; со старым FoodSpawner3D / GameManager не связан.
+
+4.5 Редакторские утилиты
+  Degustator3DPrefabFactory: меню Degustation -> 3D -> Create Food Prefab Template /
+  Create Placement Points (5 in a row) / Setup Inspection Rig (создаёт HoldAnchor
+  и InspectionController).
+
+4.6 Сцена SampleScene
+  Объекты: PointStart, PointEnd, Tabel (стол), Main Camera, Directional Light,
+  DishesManager (TableLine1), PlaceForDishes (TableLine), Gizmos, Psx.Volume.
+  Из скриптов проекта на сцене только TableLine и TableLine1. Это отдельный,
+  ранний подход к раскладке блюд по линии стола. Он не связан с
+  FoodSpawner3D / FoodPlacementPoint.
+  Build Settings: только SampleScene. ShopScene и MainMenu (имена зашиты
+  в GameManager и SceneSwitcher) в проекте не существуют.
+
+
+5. ЧТО РЕАЛИЗОВАНО (есть код, логика выглядит законченной)
+-----------------------------------------------------------
+  [+] Модель данных еды, ядов, болезней, эффектов, 13 блюд + профили ядов/болезней
+  [+] Бросок эффектов блюда (Roll) и сохранение результата в RuntimeFood
+  [+] Система органов: HP, пороговые состояния, события, сохранение
+  [+] Таблица урона "способ проверки x эффект" с формулой от силы эффекта
+  [+] Спавн блюд на точках стола, сортировка слева направо глазами игрока
+  [+] Наведение / подсветка / клик по 3D-блюду (с игнорированием кликов по UI)
+  [+] Режим осмотра с DOTween-анимацией и вращением / зумом без пролёта сквозь камеру
+  [+] Панель чувств с сохранением выбора по каждому блюду и очками осмотра
+  [+] Оценка Perfect / Partial / Fail, очки, XP, репутация, уровни
+  [+] Окно итогов раунда, цикл волн, конец сессии
+  [+] Каталог магазина, покупка, разблокировка действий свитками
+  [+] Сохранение через SaveGameFree (PlayerScore, органы, разблокировки)
+  [+] InputCompat - обёртка, чтобы не падать при выключенном старом Input
+  [+] Editor-меню для быстрой сборки 3D-рига
+  [+] Документация README_3D.md
+  Коммиты показывают осознанный рефакторинг: заглушки в GameManager заменены
+  реальными результатами, повторный Roll() при уроне исправлен.
+
+
+6. ЧТО НЕ РАБОТАЕТ / ПРОБЛЕМЫ (по убыванию важности)
+-----------------------------------------------------
+Блокирующие:
+  1. Сцена не собрана. В SampleScene нет GameManager, FoodSpawner3D,
+     FoodPlacementPoint, InspectionController, PlayerInteractor, SlidePanel,
+     InspectionProcessor, ActionUnlockManager, EndOfRoundWindow, кнопок
+     ConfirmButton / ContinueButton / ShopButton. Запуск Play не даст игры.
+     Без GameManager StartSession тоже не вызывается.
+  2. Для 3D-блюд нужен FoodData.prefab3D, а README описывает, что его надо
+     заполнить вручную. Есть признак, что это не сделано: в git изменён
+     Bread.asset, а Cube.prefab лежит в PoisonSO/Sicknes как свежая заготовка.
+     Если prefab3D пуст, спавнер пропускает блюдо с предупреждением.
+     (Содержимое остальных .asset-файлов я не проверял.)
+  3. ShopScene и MainMenu не существуют и не добавлены в Build Settings ->
+     кнопка Shop и SceneSwitcher.GoToShop / GoToMainMenu вызовут ошибку
+     загрузки сцены.
+  4. Старый Input в минииграх. В ProjectSettings activeInputHandler = 1
+     (только новый Input System). CircularSkillCheck и MashingMiniGame зовут
+     Input.GetKeyDown(KeyCode.Space) -> InvalidOperationException каждый кадр.
+     Нужно заменить на InputCompat.KeyDown (в нём пока нет пробела для
+     старой ветки... есть KeyCode.Space, так что достаточно подмены вызова).
+  5. Миниигры (CircularSkillCheck, MashingMiniGame) никуда не подключены -
+     пишут результат только в Debug.Log, GameManager о них ничего не знает.
+
+Ошибки структуры / компиляции (вероятные):
+  6. FoodTable лежит в файле FoodEnchanter.cs, а класс Dish (MonoBehaviour) - в
+     TableLine.cs. Unity требует совпадения имени MonoBehaviour и файла, иначе
+     их нельзя повесить на объект. Кроме того, глобальный класс Dish
+     путается с DishData / файлом Dish.cs в Scripts/Data.
+  7. FoodList.cs и LevelType.cs подключают NUnit.Framework (скорее всего
+     добавлено IDE автоматически). Это тянет тестовую сборку в игровой код;
+     в билде может не собраться. Лишний using UnityEngine.Rendering в FoodList.
+  8. LevelManager.cs лежит в LevelType_Pref и ссылается на FoodEnchanter /
+     FoodTable / RoundPlan; метод RunRound нигде не вызывается, PickRandom не
+     используется, поля dishesPerRound / modifiersPerRound не читаются.
+  9. FoodServant.cs закомментирован целиком и ссылается на несуществующие
+     типы (FoodMenu, dish.sourceData) - мёртвый код.
+  10. FoodEnchanter.Apply - цикл с пустым телом; Serve в FoodTable только
+      yield return null. Модификаторы пока ни на что не влияют.
+      FoodList.GenerateMenu() пустой, закомментированный LevelType().
+
+Логические недочёты в рабочем коде:
+  11. GetWorstSense всегда возвращает Taste. Комментарий обещает "самый опасный
+      способ", но реально нет анализа эффектов блюда.
+  12. Возможен конфликт: InspectionPoints.OnEnable вызывает StartSession (SO
+      сбрасывается при каждом включении), а GameManager.StartSession вызывает
+      его ещё раз - не критично, но состояние SO ненадёжно в редакторе
+      (SenseStatsData тоже вызывает события из OnValidate).
+  13. Состояние SO (SenseStatsData, PlayerScore) живёт в ассете: в редакторе
+      изменения HP сохраняются между запусками Play и попадают в git.
+      Явного сброса при старте нового забега не видно (есть HealAll и
+      PlayerScore.Reset, но GameManager их не вызывает).
+  14. GameManager ищет UI по имени (GameObject.Find) - хрупко; нет защиты, если
+      кнопка переименована.
+  15. SlidePanel.Start принудительно ставит панель в leftX; значения leftX /
+      middlePosX / tweenDuration по умолчанию 0 - панель не будет двигаться,
+      пока их не задать.
+  16. Слой "Inspect" не создан в TagManager (поле inspectLayerName пустое -
+      это допустимо, просто блюдо в руках может резаться стенами).
+  17. Дубли и мусор: Menu.asset, NewFood.asset, NewFood 1.asset в корне,
+      Ui_CS/NewFood*.asset, ScForSO/FoodData.cs.bak, DropDownManager и
+      ReadDropDownINP (тестовые, ReadDropDownINP.TranslateEnterValue
+      бессмысленный), TastedItem*/ItemSlot и др. в _Legacy2D, пустые
+      папки RealizetLogic, SkillChek, Editor в корне.
+  18. TasteHandler - заготовка, только Debug.Log.
+  19. Опечатки в именах (Entitis_Scripts, Sences, Tabel, SupliesEm,
+      PoisonosActions, Crakers, Chiken, MeshPotato) - не ломают код, но мешают
+      поиску.
+
+
+7. ЗАМЕТКИ ПО GIT
+-----------------
+  Не закоммичено: изменения FoodEnchanter.cs, Bread.asset; новые LevelType.cs,
+  LevelType_Pref/, Scripts/Data/{FoodInstance,FoodList,RoundPlan}.cs,
+  Cube.prefab. Это текущая активная работа над подсистемой "план раунда".
+  История из 17 коммитов показывает путь: сохранения и уровни -> чувства и
+  магазин -> еда и эффекты -> инспекция и UI -> переход с 2D на 3D ->
+  рефакторинг взаимодействия -> заготовки меню и размещения на столе.
+  Ветка HEAD (detached) - перед продолжением работы стоит переключиться на
+  именованную ветку, чтобы коммиты не потерялись.
+
+
+8. РЕКОМЕНДУЕМЫЙ ПОРЯДОК ДЕЙСТВИЙ
+--------------------------------
+  1. Собрать игровую сцену: GameManager, стол с FoodSpawner3D и 5 точками
+     (меню Degustation -> 3D), Inspection Rig, Canvas со SlidePanel,
+     ConfirmButton, EndOfRoundWindow, OrganView-ы; назначить SO-ассеты.
+  2. Заполнить prefab3D (и targetSense / correctAction) у всех 13 FoodData.
+  3. Заменить Input.GetKeyDown в минииграх на InputCompat.
+  4. Вынести FoodTable и Dish в отдельные файлы, убрать NUnit из using.
+  5. Решить судьбу подсистемы LevelType / RoundPlan: либо встроить в
+     FoodSpawner3D (брать список блюд из LevelType.availableFood), либо
+     убрать дублирование. Реализовать FoodEnchanter.Apply.
+  6. Создать ShopScene / MainMenu или убрать ссылки на них; добавить сцены
+     в Build Settings.
+  7. Сбрасывать SenseStatsData / PlayerScore в начале нового забега.
+  8. Удалить _Legacy2D и мусорные ассеты, когда 3D-сцена заработает.

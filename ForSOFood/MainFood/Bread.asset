@@ -12,8 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56cabf966c876fa4ba1d2cf14cfb1619, type: 3}
   m_Name: Bread
   m_EditorClassIdentifier: 
+  Type: 
+  Level: 
   foodName: Bread
   shopIcon: {fileID: 9174759750578444888, guid: 6f4b43e520e899744908d65080b4c4a2, type: 3}
+  prefab3D: {fileID: 5797648437837480510, guid: 12c8e2301210f794aa17a784c61925cf, type: 3}
+  placementOffset: {x: 0, y: 0, z: 0}
   targetSense: 0
   effectProfile: {fileID: 0}
   correctAction: {fileID: 0}
