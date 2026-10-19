@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Degustation;
 using UnityEngine;
 
+
+
 public class FoodEnchanter : MonoBehaviour
 {
     // Получает план и решает, как каждый модификатор ложится на блюда
@@ -10,7 +12,7 @@ public class FoodEnchanter : MonoBehaviour
     {
         foreach (var effect in plan.modifiers)
         {
-            // Выбрать блюдо и применить effect, например через FoodInstance
+            
         }
         return plan.dishes;
     }

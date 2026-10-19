@@ -1,37 +1,39 @@
 // FoodEffect.cs
-// ScriptableObject — список enum-значений конкретной еды
-// Менеджер читает отсюда и проверяет совместимости
+// ScriptableObject — a list of enum values ​​for a specific food
+// The manager reads from here and checks for compatibility
 //
-// КАК РАСШИРЯТЬ:
-//   Добавил новый яд в PoisonType → он появится в дропдауне автоматически
-//   Добавил новый сенс в SenseType → аналогично
-//   Нужен новый тип данных (например ItemType) → добавь List<ItemType> сюда
+// HOW TO EXTEND:
+// Added a new poison to PoisonType → it will appear in the dropdown automatically
+// Added a new sense to SenseType → similarly
+// Need a new data type (for example, ItemType) → add List<ItemType> here
 
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Degustation
 {
     [CreateAssetMenu(fileName = "NewFoodEffect", menuName = "Degustation/Food Effect")]
     public class FoodEffect : ScriptableObject
     {
-        [Header("Яды")]
-        [Tooltip("Какие яды содержит продукт. Добавляй значения в PoisonType enum → появятся здесь")]
+        [Header("Poison")]
+        [Tooltip("Which poison does the food contain. Add values to PoisonType enum → appear here")]
+        [FormerlySerializedAs("poison")]
         public List<PoisonosActions.PoisonType> poisons = new();
 
-        [Header("Болезни")]
-        [Tooltip("Какие болезни может передать продукт")]
+        [Header("Diseases")]
+        [Tooltip("Which diseases this food may transmit")]
         public List<PoisonosActions.DiseaseType> diseases = new();
 
-        [Header("Затрагиваемые чувства")]
-        [Tooltip("Какие органы чувств затрагивает (кроме основного targetSense в FoodData)")]
+        [Header("Affecting Senses")]
+        [Tooltip("Which organs/feelings are affected (excluding the main target sense)")]
         public List<SenseType> affectedSenses = new();
 
-        [Header("Расходники / экипировка (для совместимости)")]
-        [Tooltip("Какие расходники взаимодействуют с этим продуктом")]
+        [Header("Consumables related to the product")]
+        [Tooltip("Which consumables interact with this food product")]
         public List<Degustator.SensoryConsumable> relatedConsumables = new();
 
-        [Tooltip("Какая экипировка защищает от этого продукта")]
+        [Tooltip("Which sensory equipment shields against this food product")]
         public List<Degustator.SensoryEquipment> blockedByEquipment = new();
     }
 }
